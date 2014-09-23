@@ -1,0 +1,5 @@
+Flask
+-e git+https://github.com/arg0s/ParsePy.git#egg=ParsePy
+Flask-BasicAuth
+Flask-API
+gunicorn
