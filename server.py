@@ -7,7 +7,8 @@ from flask.ext.basicauth import BasicAuth
 from parse_rest.connection import register
 from parse_rest.datatypes import Object
 from parse_rest.user import User as ParseUser
-from parse_rest.core import ResourceRequestBadRequest, ResourceRequestForbidden, ResourceRequestNotFound, ResourceRequestLoginRequired
+from parse_rest.core import ResourceRequestBadRequest, ResourceRequestForbidden,\
+    ResourceRequestNotFound, ResourceRequestLoginRequired
 from werkzeug.datastructures import MultiDict
 
 app = FlaskAPI(__name__)
@@ -27,12 +28,14 @@ if port == 5000:
 register(os.environ.get('PARSE_APP_ID'), os.environ.get(
     'PARSE_APP_KEY'), master_key=os.environ.get('PARSE_SECRET_KEY'))
 
-# Choices can be used for sessions as well as panels by attribution appropriate options
+# Choices can be used for sessions as well as panels by attribution
+# of appropriate options (yes/no or speaker1/speaker2/speaker3)
 # TODO: pull from config instead
 
 routes = {
-    "08033013391": "Choice 1",
-    "08033013392": "Choice 2"
+    "08030752691": "Choice 1",
+    "08030752692": "Choice 2",
+    "08030752693": "Choice 3",
 }
 
 
@@ -71,20 +74,38 @@ def set_performance():
         return dict(id=session.id, name=session.name)
 
 
-@app.route('/votes')
-@basic_auth.required
-def votes():
+def get_feed(mask=True):
+
+    def pub_tel(tel, mask):
+        return tel.replace(tel[:7], 'X-XXX-XXX-') if mask else tel
+
     # Grab the users from parse, process them based on choices
     users = Clap.Query.all()
     # Load these into the werkzeug multidict since its possible there may be
     # multiple missed calls per number
-    entries = MultiDict([(user.vote, user.tel) for user in users])
+    entries = MultiDict([(user.vote, pub_tel(user.tel, mask))
+                         for user in users])
     # For now, collapse the multidict, retaining only unique items - simple
     # algo
-    votes = [dict(choice=choice, votes=list(set(entries.getlist(choice))))
+
+    def count_votes(entries, choice):
+        votes = list(set(entries.getlist(choice)))
+        return dict(choice=choice, votes=votes, count=len(votes))
+
+    votes = [count_votes(entries, choice)
              for choice in routes.values()]
-    # TODO: add counts
     return votes
+
+
+@app.route('/votes')
+@basic_auth.required
+def votes():
+    return get_feed(mask=False)
+
+
+@app.route('/stream')
+def stream():
+    return get_feed()
 
 
 @app.route('/clap')
