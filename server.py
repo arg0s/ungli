@@ -4,6 +4,7 @@ from flask import Flask, redirect, url_for, request, jsonify, json, abort, g
 import os
 from flask.ext.api import FlaskAPI, status, exceptions
 from flask.ext.basicauth import BasicAuth
+from flask_cors import CORS
 from parse_rest.connection import register
 from parse_rest.datatypes import Object
 from parse_rest.user import User as ParseUser
@@ -12,7 +13,8 @@ from parse_rest.core import ResourceRequestBadRequest, ResourceRequestForbidden,
 from werkzeug.datastructures import MultiDict
 
 app = FlaskAPI(__name__)
-
+cors = CORS(app)
+app.config['CORS_HEADERS'] = 'Content-Type'
 app.config['BASIC_AUTH_USERNAME'] = os.environ.get('AUTH_U', 'spam')
 app.config['BASIC_AUTH_PASSWORD'] = os.environ.get('AUTH_P', 'eggs')
 
